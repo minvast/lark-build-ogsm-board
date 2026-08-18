@@ -1,0 +1,4 @@
+interface:
+  display_name: "OGSM 多维表生成器"
+  short_description: "将本地或在线 OGSM 表预检并生成极简飞书多维表看板"
+  default_prompt: "使用 $lark-build-ogsm-board 检查这张 OGSM 表，并在我确认映射后生成极简飞书多维表看板。"

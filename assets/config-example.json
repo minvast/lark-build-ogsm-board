@@ -1,0 +1,25 @@
+{
+  "mode": "minimal-one-table",
+  "scope": "department",
+  "base_name": "示例部门 OGSM看板",
+  "table_name": "OGSM行动",
+  "progress_profile": "status-default-v1",
+  "health_profile": {
+    "due_soon_days": 7,
+    "stale_days": 7,
+    "due_soon_progress_below": 80,
+    "risk_text_is_red": true,
+    "blocked_is_red": true,
+    "overdue_is_red": true
+  },
+  "workflows": {
+    "create_disabled": true,
+    "deadline_change": true,
+    "red_daily_summary": true,
+    "send_test_message": false
+  },
+  "refresh_policy": {
+    "upsert_key": "源记录ID",
+    "preserve_manual_execution_fields": true
+  }
+}
