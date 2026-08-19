@@ -1,6 +1,6 @@
 ---
 name: lark-build-ogsm-board
-description: 将本地 Excel/CSV OGSM 一页纸、飞书电子表格或现有极简 OGSM 表，转换为经过预检、人工确认和幂等验收的飞书多维表格执行看板。适用于支持 Agent Skills、系统提示词、函数调用、插件或工作流的智能体运行时；用于标准化 O/G/S/M/行动数据、拆分过宽策略、解析真实负责人、为一个或多个部门分别创建或更新 Base，并安全审计或清理由误导入产生的重复记录。
+description: 将本地 Excel/CSV OGSM 一页纸、飞书电子表格或现有极简 OGSM 表，转换为经过预检、人工确认和幂等验收的飞书多维表格执行看板。适用于 WorkBuddy、Codex、飞书 Aily，以及其他支持 Agent Skills、系统提示词、函数调用、插件或工作流的智能体；用于标准化 O/G/S/M/行动数据、拆分过宽策略、解析真实负责人、为一个或多个部门分别创建或更新 Base，并安全审计或清理由误导入产生的重复记录。
 ---
 
 # 构建极简 OGSM 多维表看板
@@ -12,12 +12,21 @@ description: 将本地 Excel/CSV OGSM 一页纸、飞书电子表格或现有极
 本文件定义平台无关的业务和安全规则。开始前读取 [references/platform-adapters.md](references/platform-adapters.md)，选择当前运行时对应的适配层：
 
 - 支持 Agent Skills 文件：直接加载本目录，并映射所需能力。
+- WorkBuddy：上传本地 Skill 包，并读取 [adapters/workbuddy/runtime.md](adapters/workbuddy/runtime.md)。
 - 飞书 Aily / 飞书智能伙伴：使用 [adapters/feishu-aily/agent-skill-prompt.md](adapters/feishu-aily/agent-skill-prompt.md) 和 5 个操作契约。
 - Codex：读取 [adapters/codex/runtime.md](adapters/codex/runtime.md)。
 - Dify、扣子、FastGPT、MaxKB：读取各自适配说明；不宣称可原生导入本目录。
 - 其他支持函数调用的 Agent：使用 [adapters/generic/system-prompt.md](adapters/generic/system-prompt.md) 与 [adapters/generic/tool-contract.json](adapters/generic/tool-contract.json)。
 
 运行时至少应提供以下能力：读取数据源、解析人员、完整读取 Base、按计划写入 Base、回读验收，以及在写入前与用户确认。能力名称可以不同，由适配层映射。若缺少写入或回读能力，只能生成预检报告和搭建计划，不得声称已完成 Base 搭建。
+
+## 面向 AI 小白沟通
+
+- 默认使用小白模式：先说结论，再说当前只需做的一步；每次最多问一个必须由用户决定的问题。
+- 不主动展示 SHA-256、来源指纹、plan ID、snapshot ID、record ID、API 参数或命令行。它们仅用于内部校验，用户要求技术细节时再展示。
+- 把“执行 upsert”说成“更新已有记录，不重复新增”，把“完整回读验收”说成“搭完后再检查一遍”。
+- 安装时只给平台对应的最短路径。能自动安装就验证后报告；不能自动安装就明确告诉用户点击哪个入口，不得假装成功。
+- 完成时优先报告：已建几个 Base、各有多少条行动、哪些信息仍需补充、提醒是否开启。技术日志放到可选附录。
 
 ## 必须执行的流程
 

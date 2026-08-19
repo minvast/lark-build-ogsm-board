@@ -17,6 +17,7 @@
 | 运行时 | 使用入口 | 工具接入方式 | 可直接导入本目录 |
 | --- | --- | --- | --- |
 | 支持 Agent Skills 的运行时 | 根 `SKILL.md` | 平台原生工具或 MCP | 视平台规范而定 |
+| WorkBuddy | `adapters/workbuddy/runtime.md` | 本地 Skill 包 + 连接器、MCP 或 CLI | 是，上传 ZIP |
 | 飞书 Aily | `adapters/feishu-aily/agent-skill-prompt.md` | Agent Skill 操作 + 自定义连接器或工作流 | 否，需粘贴提示词并绑定操作 |
 | Codex | `adapters/codex/runtime.md` | lark 系列技能和 CLI | 是 |
 | Dify | `adapters/dify/runtime.md` | Tool 插件 + Workflow | 否 |
