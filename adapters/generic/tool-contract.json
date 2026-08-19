@@ -1,0 +1,44 @@
+{
+  "contract_version": "1.0",
+  "skill": "lark-build-ogsm-board",
+  "operations": [
+    {
+      "name": "inspect_ogsm_source",
+      "description": "读取并标准化 OGSM 来源，只读生成预检结果和来源指纹。",
+      "required_input": ["source"],
+      "required_output": ["source_fingerprint", "normalized_count", "coverage", "review_items", "blocking_issues"]
+    },
+    {
+      "name": "resolve_people",
+      "description": "按唯一负责人原文查询人员目录，返回零个、一个或多个候选，不做自动猜测。",
+      "required_input": ["names", "source_fingerprint"],
+      "required_output": ["matches", "unresolved", "ambiguous"]
+    },
+    {
+      "name": "inspect_target_base",
+      "description": "完整读取目标 Base 的表、记录和配置，只读检查分页、空键、重复键和计划外记录。",
+      "required_input": ["targets", "upsert_key"],
+      "required_output": ["snapshot_id", "has_more", "record_count", "blank_keys", "duplicate_keys", "unexpected_records"]
+    },
+    {
+      "name": "execute_approved_ogsm_plan",
+      "description": "执行已批准的固定计划；后端必须重新校验确认摘要、来源指纹、计划 ID 和写前快照。",
+      "required_input": ["plan_id", "source_fingerprint", "snapshot_id", "approval_summary", "approved"],
+      "required_output": ["targets", "created", "updated", "objects_created", "workflows_enabled", "operation_log_id"]
+    },
+    {
+      "name": "verify_ogsm_base",
+      "description": "完整回读并重复相同 upsert，验证记录键、对象配置、工作流状态和幂等性。",
+      "required_input": ["plan_id", "targets", "operation_log_id"],
+      "required_output": ["record_count", "unique_key_count", "second_upsert_created", "second_upsert_updated", "workflow_states", "acceptance_passed", "issues"]
+    }
+  ],
+  "write_invariants": {
+    "upsert_key": "源记录ID",
+    "max_batch_size": 200,
+    "require_full_readback": true,
+    "require_explicit_approval": true,
+    "delete_requires_fixed_record_ids": true,
+    "workflows_default_disabled": true
+  }
+}

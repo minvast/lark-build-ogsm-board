@@ -1,4 +1,10 @@
 {
+  "runtime": {
+    "adapter": "auto",
+    "capability_mode": "require-read-write-readback",
+    "allow_plan_only_fallback": true,
+    "operation_contract": "adapters/generic/tool-contract.json"
+  },
   "mode": "minimal-one-table",
   "scope": "department",
   "multi_department_topology": "confirm-before-write",
