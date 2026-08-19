@@ -17,13 +17,21 @@
 | 运行时 | 使用入口 | 工具接入方式 | 可直接导入本目录 |
 | --- | --- | --- | --- |
 | 支持 Agent Skills 的运行时 | 根 `SKILL.md` | 平台原生工具或 MCP | 视平台规范而定 |
-| WorkBuddy | `adapters/workbuddy/runtime.md` | 本地 Skill 包 + 连接器、MCP 或 CLI | 是，上传 ZIP |
+| WorkBuddy | `adapters/workbuddy/runtime.md` | GitHub 自主安装或通用 Skill ZIP + 连接器、MCP 或 CLI | 是，与其他兼容平台共用同一 ZIP |
 | 飞书 Aily | `adapters/feishu-aily/agent-skill-prompt.md` | Agent Skill 操作 + 自定义连接器或工作流 | 否，需粘贴提示词并绑定操作 |
 | Codex | `adapters/codex/runtime.md` | lark 系列技能和 CLI | 是 |
 | Dify | `adapters/dify/runtime.md` | Tool 插件 + Workflow | 否 |
 | 扣子 | `adapters/coze/runtime.md` | 插件或工作流 | 否 |
 | FastGPT / MaxKB | `adapters/fastgpt-maxkb/runtime.md` | HTTP 工具或工作流 | 否 |
 | 其他函数调用 Agent | `adapters/generic/` | JSON 契约对应的函数或 API | 否 |
+
+## 安装方式优先级
+
+1. 把 `https://github.com/minvast/lark-build-ogsm-board` 交给 Agent，让它从仓库根目录安装并验证。
+2. Agent 不能联网下载或没有安装权限时，上传通用包 `lark-build-ogsm-board.zip`。
+3. 平台不支持 Agent Skills 文件结构时，不强行导入 ZIP，改用对应的提示词、工具契约或工作流适配器。
+
+WorkBuddy 与 Codex 共用同一份 Skill 内容，不维护 WorkBuddy 专用包。平台界面是否支持直接粘贴仓库 URL 由平台版本决定；Agent 也可以通过下载或克隆仓库完成安装。
 
 ## 能力降级
 

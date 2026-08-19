@@ -12,7 +12,7 @@ description: 将本地 Excel/CSV OGSM 一页纸、飞书电子表格或现有极
 本文件定义平台无关的业务和安全规则。开始前读取 [references/platform-adapters.md](references/platform-adapters.md)，选择当前运行时对应的适配层：
 
 - 支持 Agent Skills 文件：直接加载本目录，并映射所需能力。
-- WorkBuddy：上传本地 Skill 包，并读取 [adapters/workbuddy/runtime.md](adapters/workbuddy/runtime.md)。
+- WorkBuddy：优先让 Agent 从公开 GitHub 仓库下载安装；若当前环境不能自动安装，上传同一个通用 Skill ZIP，并读取 [adapters/workbuddy/runtime.md](adapters/workbuddy/runtime.md)。
 - 飞书 Aily / 飞书智能伙伴：使用 [adapters/feishu-aily/agent-skill-prompt.md](adapters/feishu-aily/agent-skill-prompt.md) 和 5 个操作契约。
 - Codex：读取 [adapters/codex/runtime.md](adapters/codex/runtime.md)。
 - Dify、扣子、FastGPT、MaxKB：读取各自适配说明；不宣称可原生导入本目录。
@@ -20,12 +20,18 @@ description: 将本地 Excel/CSV OGSM 一页纸、飞书电子表格或现有极
 
 运行时至少应提供以下能力：读取数据源、解析人员、完整读取 Base、按计划写入 Base、回读验收，以及在写入前与用户确认。能力名称可以不同，由适配层映射。若缺少写入或回读能力，只能生成预检报告和搭建计划，不得声称已完成 Base 搭建。
 
+## 安装与分发
+
+首推把公开仓库地址 `https://github.com/minvast/lark-build-ogsm-board` 直接交给 Agent，并要求它从仓库根目录安装 `lark-build-ogsm-board`、检查根目录 `SKILL.md`，再验证技能已可用。只有在 Agent 没有联网下载、本地文件写入或 Skill 安装能力时，才让用户下载并上传通用包 `lark-build-ogsm-board.zip`。
+
+通用 ZIP 适用于 Codex、WorkBuddy 及其他兼容 Agent Skills 文件结构的平台，不得为 WorkBuddy 维护内容相同的专用包。不要宣称所有平台的图形界面都能直接粘贴 GitHub URL；“从 GitHub 安装”可以由 Agent 自行下载并放入其 Skill 目录完成。安装只加载流程和资源，不得在安装阶段运行 OGSM 脚本、连接飞书或读取业务数据。
+
 ## 面向 AI 小白沟通
 
 - 默认使用小白模式：先说结论，再说当前只需做的一步；每次最多问一个必须由用户决定的问题。
 - 不主动展示 SHA-256、来源指纹、plan ID、snapshot ID、record ID、API 参数或命令行。它们仅用于内部校验，用户要求技术细节时再展示。
 - 把“执行 upsert”说成“更新已有记录，不重复新增”，把“完整回读验收”说成“搭完后再检查一遍”。
-- 安装时只给平台对应的最短路径。能自动安装就验证后报告；不能自动安装就明确告诉用户点击哪个入口，不得假装成功。
+- 安装时先给 GitHub 地址这一条最短路径；能自动安装就验证后报告。不能自动安装时，再给同一个通用 ZIP 和平台上传入口，不得假装成功。
 - 完成时优先报告：已建几个 Base、各有多少条行动、哪些信息仍需补充、提醒是否开启。技术日志放到可选附录。
 
 ## 必须执行的流程
