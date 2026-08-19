@@ -1,6 +1,7 @@
 {
   "mode": "minimal-one-table",
   "scope": "department",
+  "multi_department_topology": "confirm-before-write",
   "base_name": "示例部门 OGSM看板",
   "table_name": "OGSM行动",
   "progress_profile": "status-default-v1",
@@ -20,6 +21,22 @@
   },
   "refresh_policy": {
     "upsert_key": "源记录ID",
-    "preserve_manual_execution_fields": true
+    "preserve_manual_execution_fields": true,
+    "record_list_shapes": ["object-list", "matrix"],
+    "require_has_more_false": true,
+    "stop_on_blank_or_duplicate_key": true,
+    "second_upsert_must_create_zero": true,
+    "duplicate_cleanup_requires_explicit_authorization": true
+  },
+  "people_policy": {
+    "one_accountable_owner": true,
+    "unresolved_placeholder": "leave-people-field-blank",
+    "preserve_original_text": true
+  },
+  "write_policy": {
+    "serial": true,
+    "batch_max": 200,
+    "bounded_retry": true,
+    "read_back_every_object": true
   }
 }

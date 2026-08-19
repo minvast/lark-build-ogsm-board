@@ -19,6 +19,7 @@ V1 supports rectangular tables and merged hierarchy cells. It does not promise a
 | objective | O｜目的 | Review-required if blank |
 | goal | G｜目标 | Recommended |
 | strategy | S｜策略 | Review-required if blank |
+| strategy_source_text | S｜策略原文（备查） | Initialize from source S; preserve when a reviewed child strategy is assigned |
 | measure | M｜衡量 | Review-required if blank |
 | action | 行动 | Required; one row means one action |
 | owner | 负责人 | Review-required; text is not yet a people identity |
@@ -37,12 +38,15 @@ V1 supports rectangular tables and merged hierarchy cells. It does not promise a
 - Never forward-fill action, owner, date, status, risk, next action, or evidence.
 - Keep source file, sheet, row/range, and file fingerprint.
 - Generate `源记录ID` from department, period, O, G, S, M, and action text.
+- Generate `源记录ID` before applying reviewed strategy splits, then keep it unchanged. Prefer a source-provided stable ID when available.
 - Do not split a multiline action cell automatically. Flag it for review.
 - Do not turn owner text into a people value until `lark-contact` resolves it.
+- Treat role names, question marks, headcount placeholders, and `inhouse N名` as unresolved owner text; keep the people field blank after confirmation.
 - Do not invent missing dates, owners, goals, strategies, measures, or progress.
 
 ## Online source routing
 
-- Feishu Sheet URL: use `lark-sheets` to resolve the spreadsheet and read the specific worksheet/range. Preserve the online URL and row/range as provenance.
+- Feishu Sheet URL: use `lark-sheets` to resolve the spreadsheet and read the specific worksheet/range. Preserve the online URL, spreadsheet title/token, worksheet ID/name, range, source row, revision when available, and a deterministic fingerprint.
+- Source color or styling is not a status until the user confirms the mapping. Preserve the original signal in the review artifacts.
 - Base URL: use `lark-base +url-resolve`; inspect fields and records before proposing an upgrade.
 - Local Excel that should be imported as-is: use `lark-drive +import --type bitable` only when the user wants direct import. For this skill, prefer normalization and a purpose-built Base because formulas, people fields, views, and workflows require post-import configuration.
