@@ -18,7 +18,7 @@
 | --- | --- | --- | --- |
 | 支持 Agent Skills 的运行时 | 根 `SKILL.md` | 平台原生工具或 MCP | 视平台规范而定 |
 | WorkBuddy | `adapters/workbuddy/runtime.md` | GitHub 自主安装或通用 Skill ZIP + 连接器、MCP 或 CLI | 是，与其他兼容平台共用同一 ZIP |
-| 飞书 Aily | `adapters/feishu-aily/agent-skill-prompt.md` | Agent Skill 操作 + 自定义连接器或工作流 | 否，需粘贴提示词并绑定操作 |
+| 飞书 Aily | `adapters/feishu-aily/deployment.md` | Agent Skill 负责对话调度；工作流或自定义连接器后端负责稳定执行 | 否，需粘贴提示词、配置字段并绑定 5 个粗粒度操作 |
 | Codex | `adapters/codex/runtime.md` | lark 系列技能和 CLI | 是 |
 | Dify | `adapters/dify/runtime.md` | Tool 插件 + Workflow | 否 |
 | 扣子 | `adapters/coze/runtime.md` | 插件或工作流 | 否 |
@@ -51,3 +51,5 @@ WorkBuddy 与 Codex 共用同一份 Skill 内容，不维护 WorkBuddy 专用包
 - 删除操作携带用户批准的固定 record ID 清单。
 
 提示词中的“已确认”不能替代后端校验。
+
+飞书 Aily 适配时还应把模型可推断字段与原样传递字段分开：用户来源、范围和选择可由模型理解；指纹、计划 ID、快照 ID 和操作日志 ID 只能来自前序操作。模型上下文只保留摘要和引用，不载入完整规范数据或原始 API 响应。

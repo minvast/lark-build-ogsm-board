@@ -13,7 +13,7 @@ description: 将本地 Excel/CSV OGSM 一页纸、飞书电子表格或现有极
 
 - 支持 Agent Skills 文件：直接加载本目录，并映射所需能力。
 - WorkBuddy：优先让 Agent 从公开 GitHub 仓库下载安装；若当前环境不能自动安装，上传同一个通用 Skill ZIP，并读取 [adapters/workbuddy/runtime.md](adapters/workbuddy/runtime.md)。
-- 飞书 Aily / 飞书智能伙伴：使用 [adapters/feishu-aily/agent-skill-prompt.md](adapters/feishu-aily/agent-skill-prompt.md) 和 5 个操作契约。
+- 飞书 Aily / 飞书智能伙伴：依次读取 [部署说明](adapters/feishu-aily/deployment.md)、[可粘贴提示词](adapters/feishu-aily/agent-skill-prompt.md) 和 [5 个操作契约](adapters/feishu-aily/operation-contracts.md)。Agent Skill 只负责对话、决策门和操作调度；复杂且必须稳定执行的搭建过程交给工作流或自定义连接器后端。
 - Codex：读取 [adapters/codex/runtime.md](adapters/codex/runtime.md)。
 - Dify、扣子、FastGPT、MaxKB：读取各自适配说明；不宣称可原生导入本目录。
 - 其他支持函数调用的 Agent：使用 [adapters/generic/system-prompt.md](adapters/generic/system-prompt.md) 与 [adapters/generic/tool-contract.json](adapters/generic/tool-contract.json)。
@@ -24,7 +24,7 @@ description: 将本地 Excel/CSV OGSM 一页纸、飞书电子表格或现有极
 
 首推把公开仓库地址 `https://github.com/minvast/lark-build-ogsm-board` 直接交给 Agent，并要求它从仓库根目录安装 `lark-build-ogsm-board`、检查根目录 `SKILL.md`，再验证技能已可用。只有在 Agent 没有联网下载、本地文件写入或 Skill 安装能力时，才让用户下载并上传通用包 `lark-build-ogsm-board.zip`。
 
-通用 ZIP 适用于 Codex、WorkBuddy 及其他兼容 Agent Skills 文件结构的平台，不得为 WorkBuddy 维护内容相同的专用包。不要宣称所有平台的图形界面都能直接粘贴 GitHub URL；“从 GitHub 安装”可以由 Agent 自行下载并放入其 Skill 目录完成。安装只加载流程和资源，不得在安装阶段运行 OGSM 脚本、连接飞书或读取业务数据。
+通用 ZIP 适用于 Codex、WorkBuddy 及其他兼容 Agent Skills 文件结构的平台，不得为 WorkBuddy 维护内容相同的专用包。不要宣称所有平台的图形界面都能直接粘贴 GitHub URL；“从 GitHub 安装”可以由 Agent 自行下载并放入其 Skill 目录完成。飞书 Aily 当前采用“粘贴提示词并绑定操作”的适配方式，不把仓库或 ZIP 宣称为可直接导入的 Aily 应用包。安装只加载流程和资源，不得在安装阶段运行 OGSM 脚本、连接飞书或读取业务数据。
 
 ## 面向 AI 小白沟通
 
