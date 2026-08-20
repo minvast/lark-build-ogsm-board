@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
+from collections import Counter
 from pathlib import Path
 
 
@@ -16,23 +18,42 @@ def field(name: str, kind: str, **kwargs):
     return {"name": name, "type": kind, **kwargs}
 
 
+def is_owner_placeholder(value: str) -> bool:
+    return bool(re.search(r"[?？]|\binhouse\b\s*\d*\s*名|待定|未定|待确认", value, re.IGNORECASE))
+
+
 def build_plan(model: dict, base_name: str, table_name: str) -> dict:
     records = model.get("records", [])
+    source_ids = [str(record.get("source_record_id") or "").strip() for record in records]
+    blank_source_ids = [index + 1 for index, value in enumerate(source_ids) if not value]
+    duplicate_source_ids = sorted(key for key, count in Counter(source_ids).items() if key and count > 1)
+    if blank_source_ids or duplicate_source_ids:
+        raise ValueError(
+            "invalid 源记录ID set: "
+            + json.dumps(
+                {"blank_record_indexes": blank_source_ids, "duplicate_source_record_ids": duplicate_source_ids},
+                ensure_ascii=False,
+            )
+        )
     strategies = sorted({r.get("strategy", "").strip() for r in records if r.get("strategy", "").strip()})
-    owner_queries = sorted({r.get("owner", "").strip() for r in records if r.get("owner", "").strip()})
+    owner_texts = sorted({r.get("owner", "").strip() for r in records if r.get("owner", "").strip()})
+    owner_queries = [value for value in owner_texts if not is_owner_placeholder(value)]
+    unresolved_owner_placeholders = [value for value in owner_texts if is_owner_placeholder(value)]
     fields = [
         field("行动", "text", primary=True, description="一条记录对应一个可执行行动；作为主字段。"),
         field("源记录ID", "text", unique_key=True, description="稳定导入键；重复运行时用于更新而非重复创建。"),
         field("O｜目的", "text"), field("G｜目标", "text"),
-        field("S｜策略", "select", multiple=False, options=strategies), field("M｜衡量", "text"),
+        field("S｜策略", "select", multiple=False, options=strategies),
+        field("S｜策略原文（备查）", "text"), field("M｜衡量", "text"),
         field("负责人", "user", multiple=False), field("协作人", "user", multiple=True),
         field("负责人原文（备查）", "text"), field("开始日期", "datetime"), field("截止日期", "datetime"),
         field("进度状态", "select", multiple=False, options=STATUS_OPTIONS),
         field("当前进度（自动）", "formula", expression='SWITCH([进度状态],"已启动",20,"进行中",50,"接近完成",80,"待验收",90,"已完成",100,"受阻",20,0)'),
-        field("健康灯（自动）", "formula", expression='IFS([当前进度（自动）]=100,"🟢 绿灯",[进度状态]="受阻","🔴 红灯",NOT(ISBLANK([风险/卡点])),"🔴 红灯",AND(NOT(ISBLANK([截止日期])),[截止日期]<TODAY()),"🔴 红灯",AND(NOT(ISBLANK([截止日期])),DAYS([截止日期],TODAY())<=7,[当前进度（自动）]<80),"🟡 黄灯",DAYS(TODAY(),[最后修改时间])>7,"🟡 黄灯",TRUE(),"🟢 绿灯")'),
+        field("健康灯（自动）", "formula", expression='IFS([当前进度（自动）]=100,"🟢 绿灯",ISBLANK([截止日期]),"🔴 红灯",ISBLANK([进度状态]),"🔴 红灯",[进度状态]="受阻","🔴 红灯",NOT(ISBLANK([风险/卡点])),"🔴 红灯",[截止日期]<TODAY(),"🔴 红灯",AND(DAYS([截止日期],TODAY())<=7,[当前进度（自动）]<80),"🟡 黄灯",DAYS(TODAY(),[最后修改时间])>7,"🟡 黄灯",TRUE(),"🟢 绿灯")'),
         field("风险/卡点", "text"), field("下一步动作", "text"), field("交付物/证据", "text"),
         field("升级提醒对象", "user", multiple=True), field("最后修改时间", "updated_at"),
-        field("源文件", "text"), field("源工作表", "text"), field("源行号", "number"), field("导入指纹", "text"),
+        field("最后修改人", "updated_by"), field("源文档", "text"), field("源文件", "text"),
+        field("源工作表", "text"), field("源范围", "text"), field("源行号", "number"), field("导入指纹", "text"),
     ]
 
     planned_records = []
@@ -41,26 +62,46 @@ def build_plan(model: dict, base_name: str, table_name: str) -> dict:
         planned_records.append({
             "源记录ID": row.get("source_record_id"), "行动": row.get("action"),
             "O｜目的": row.get("objective"), "G｜目标": row.get("goal"),
-            "S｜策略": row.get("strategy"), "M｜衡量": row.get("measure"),
+            "S｜策略": row.get("strategy"),
+            "S｜策略原文（备查）": row.get("strategy_source_text") or row.get("strategy"),
+            "M｜衡量": row.get("measure"),
             "负责人原文（备查）": row.get("owner"), "开始日期": row.get("start_date") or None,
             "截止日期": row.get("due_date") or None, "进度状态": row.get("status") or "待更新",
             "风险/卡点": row.get("risk"), "下一步动作": row.get("next_action"),
-            "交付物/证据": row.get("evidence"), "源文件": row.get("source_file"),
-            "源工作表": row.get("source_sheet"), "源行号": row.get("source_row"), "导入指纹": fingerprint,
+            "交付物/证据": row.get("evidence"), "源文档": row.get("source_document"),
+            "源文件": row.get("source_file"), "源工作表": row.get("source_sheet"),
+            "源范围": row.get("source_range") or (f"row {row.get('source_row')}" if row.get("source_row") else None),
+            "源行号": row.get("source_row"), "导入指纹": fingerprint,
         })
 
     return {
-        "plan_version": 1,
+        "plan_version": 2,
         "mode": "minimal-one-table",
         "base": {"name": base_name, "table_name": table_name},
         "confirmation_required": {
             "owner_identity": owner_queries,
+            "unresolved_owner_placeholders": unresolved_owner_placeholders,
             "review_issues": model.get("issues", []),
             "health_profile": "default-v1",
             "workflows_enabled": False,
         },
         "fields": fields,
         "record_upsert_key": "源记录ID",
+        "provisioning_safety": {
+            "record_list_shapes": ["object-list", "matrix"],
+            "require_has_more_false": True,
+            "create_batch_max": 200,
+            "stop_on_blank_or_duplicate_target_key": True,
+            "retry_mode": "serial-bounded-backoff",
+            "retryable_error_codes": [800004135, 1254291],
+            "second_upsert_acceptance": {"created": 0, "updated": len(records)},
+            "duplicate_cleanup_requires_explicit_user_authorization": True,
+        },
+        "source_authoritative_fields": [
+            "行动", "O｜目的", "G｜目标", "S｜策略", "S｜策略原文（备查）", "M｜衡量", "负责人原文（备查）",
+            "截止日期", "源文档", "源文件", "源工作表", "源范围", "源行号", "导入指纹",
+        ],
+        "preserve_manual_fields": ["负责人", "协作人", "进度状态", "风险/卡点", "下一步动作", "交付物/证据", "升级提醒对象"],
         "records": planned_records,
         "views": [
             {"name": "00｜O-G-S-M行动总览", "type": "grid", "group_by": "S｜策略"},
@@ -77,8 +118,8 @@ def build_plan(model: dict, base_name: str, table_name: str) -> dict:
             {"name": "各负责人平均进度", "type": "bar", "group_by": "负责人", "measure": ["当前进度（自动）", "AVERAGE"]},
         ],
         "workflows": [
-            {"name": "截止日期变更提醒", "enabled": False, "trigger": "截止日期被修改", "receiver": "负责人"},
-            {"name": "红灯每日汇总", "enabled": False, "trigger": "每日定时", "receiver": "升级提醒对象", "deduplicate": True},
+            {"name": "截止日期变更提醒｜关闭", "enabled": False, "trigger": "截止日期被修改", "receiver": "负责人"},
+            {"name": "红灯每日汇总｜关闭", "enabled": False, "trigger": "每日定时", "receiver": "升级提醒对象", "deduplicate": True, "max_loop_times": 100},
         ],
     }
 
@@ -99,7 +140,11 @@ def main() -> int:
     if summary.get("review_issue_count", 0) and not args.allow_review:
         print("review issues remain; obtain user confirmation or pass --allow-review to create a draft plan", file=sys.stderr)
         return 3
-    plan = build_plan(model, args.base_name, args.table_name)
+    try:
+        plan = build_plan(model, args.base_name, args.table_name)
+    except ValueError as exc:
+        print(f"plan validation failed: {exc}", file=sys.stderr)
+        return 4
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps({"ok": True, "records": len(plan["records"]), "output": str(args.output), "workflows_enabled": False}, ensure_ascii=False))

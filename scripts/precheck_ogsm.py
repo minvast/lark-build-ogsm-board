@@ -18,7 +18,7 @@ from typing import Any
 CANONICAL_FIELDS = [
     "department", "person", "period", "objective", "goal", "strategy", "measure",
     "action", "owner", "collaborators", "start_date", "due_date", "status", "progress",
-    "risk", "next_action", "evidence",
+    "risk", "next_action", "evidence", "strategy_source_text",
 ]
 
 DISPLAY_NAMES = {
@@ -27,6 +27,7 @@ DISPLAY_NAMES = {
     "owner": "负责人原文", "collaborators": "协作人原文", "start_date": "开始日期",
     "due_date": "截止日期", "status": "进度状态", "progress": "进度原值",
     "risk": "风险/卡点", "next_action": "下一步动作", "evidence": "交付物/证据",
+    "strategy_source_text": "S｜策略原文（备查）",
 }
 
 ALIASES = {
@@ -148,6 +149,16 @@ def stable_key(record: dict[str, Any]) -> str:
     return "OGSM-" + hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16].upper()
 
 
+def column_label(index: int) -> str:
+    """Convert a zero-based column index to an Excel-style label."""
+    value = index + 1
+    label = ""
+    while value:
+        value, remainder = divmod(value - 1, 26)
+        label = chr(65 + remainder) + label
+    return label
+
+
 def probable_multi_action(text: str) -> bool:
     if not text:
         return False
@@ -186,7 +197,10 @@ def parse_source(path: Path, forced_header: int | None) -> tuple[list[dict[str, 
             record["start_date"] = normalize_date(record["start_date"])
             record["due_date"] = normalize_date(record["due_date"])
             record["progress"] = normalize_progress(record["progress"])
-            record.update({"source_file": path.name, "source_sheet": sheet_name, "source_row": row_idx})
+            record["strategy_source_text"] = record["strategy"]
+            mapped_columns = sorted(mapping)
+            source_range = f"{column_label(mapped_columns[0])}{row_idx}:{column_label(mapped_columns[-1])}{row_idx}"
+            record.update({"source_file": path.name, "source_sheet": sheet_name, "source_range": source_range, "source_row": row_idx})
             record["source_record_id"] = stable_key(record)
             records.append(record)
 
@@ -209,7 +223,9 @@ def validate(records: list[dict[str, Any]], issues: list[dict[str, Any]], scope:
         if probable_multi_action(record.get("action", "")):
             issues.append({"severity": "review", "code": "possible_multi_action", "source_record_id": record["source_record_id"], "message": f"{location}: the action cell may contain multiple actions and should be reviewed before splitting."})
         owner = record.get("owner", "")
-        if re.search(r"[、,，;/；和&＋+]", owner):
+        if re.search(r"[?？]|\binhouse\b\s*\d*\s*名|待定|未定|待确认", owner, re.IGNORECASE):
+            issues.append({"severity": "review", "code": "unresolved_owner_placeholder", "source_record_id": record["source_record_id"], "message": f"{location}: owner '{owner}' is a role/headcount placeholder; confirm leaving the people field blank."})
+        elif re.search(r"[、,，;/；和&＋+]", owner):
             issues.append({"severity": "review", "code": "multiple_primary_owners", "source_record_id": record["source_record_id"], "message": f"{location}: multiple names appear in the primary owner field; choose one owner and move others to collaborators."})
 
     by_key: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -226,6 +242,10 @@ def validate(records: list[dict[str, Any]], issues: list[dict[str, Any]], scope:
         measures = {r.get("measure", "") for r in group if r.get("measure")}
         if len(group) >= 10 or len(measures) >= 4:
             issues.append({"severity": "review", "code": "broad_strategy", "message": f"Strategy '{strategy}' contains {len(group)} actions across {len(measures)} measures; review whether child strategies are needed."})
+    if scope == "department":
+        departments = sorted({record.get("department", "").strip() for record in records if record.get("department", "").strip()})
+        if len(departments) > 1:
+            issues.append({"severity": "review", "code": "multiple_departments_topology", "message": f"Source contains {len(departments)} departments ({', '.join(departments)}); confirm separate Bases or one combined Base."})
 
 
 def write_outputs(path: Path, output_dir: Path, scope: str, records: list[dict[str, Any]], issues: list[dict[str, Any]], skipped: list[str]) -> None:
@@ -249,7 +269,7 @@ def write_outputs(path: Path, output_dir: Path, scope: str, records: list[dict[s
     }
     (output_dir / "normalized.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    columns = ["source_record_id", *CANONICAL_FIELDS, "source_file", "source_sheet", "source_row"]
+    columns = ["source_record_id", *CANONICAL_FIELDS, "source_file", "source_sheet", "source_range", "source_row"]
     with (output_dir / "normalized.csv").open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=columns, extrasaction="ignore")
         writer.writeheader()
